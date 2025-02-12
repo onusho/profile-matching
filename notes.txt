@@ -1,0 +1,7 @@
+approaches
+    reccomender systems
+    clustering
+
+fake profiles -> web scraping
+    short bios
+    interests, beliefs (politics, religion)
