@@ -43,3 +43,20 @@ connect to mongo db
 
 data set creation problems
     validation function wasn't working properly therby creating an infinite loop where it was prompting again and again
+
+
+
+
+
+analyst
+    watermarking
+    answersheet eval
+    multimodal local rag and semantic search
+    matchmaking 
+    tableau
+
+todo 13, 14, 15, 16, 17
+    13 matchmaking 
+    14 powerBI project
+    dsa
+    ml revision
