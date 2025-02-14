@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>All Profiles</title>
+  <link
+    rel="stylesheet"
+    href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+  />
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="text-center">All Stored Profiles</h1>
+    <table class="table table-bordered table-striped mt-4">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Bio</th>
+          <th>Religion</th>
+          <th>Politics</th>
+          <th>Age</th>
+          <th>Movies</th>
+          <th>Music</th>
+          <th>Social Media</th>
+          <th>Sports</th>
+          <!-- <th>Clu  ster</th> -->
+        </tr>
+      </thead>
+      <tbody>
+        {% for profile in profiles %}
+        <tr>
+          <td>{{ profile._id }}</td>
+          <td>{{ profile.Bios }}</td>
+          <td>{{ profile.Religion }}</td>
+          <td>{{ profile.Politics }}</td>
+          <td>{{ profile.Age }}</td>
+          <td>{{ profile.Movies }}</td>
+          <td>{{ profile.Music }}</td>
+          <td>{{ profile['Social Media'] }}</td>
+          <td>{{ profile.Sports }}</td>
+          <!-- <td>{{ profile.cluster }}</td> -->
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="text-center">
+      <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+    </div>
+  </div>
+</body>
+</html>
