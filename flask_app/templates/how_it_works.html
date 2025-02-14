@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>How It Works</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+        rel="stylesheet"
+        href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+    />
+
+    <style>
+        body {
+            background: linear-gradient(to right, #F39C12, #FFC107);
+            color: white;
+        }
+        .container {
+            margin-top: 50px;
+            background: white;
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 class="text-center">How It Works</h1>
+        <p>
+            Our system takes the bio you enter and matches you with similar individuals using a combination of text similarity and preference-based filtering.
+        </p>
+
+        <h3>Matching Algorithm</h3>
+        <ul>
+            <li>We analyze the entered bio using Natural Language Processing (NLP).</li>
+            <li>We compare it against our dataset of example bios.</li>
+            <li>We factor in your preferences (movies, music, politics, etc.) to refine the matching process.</li>
+        </ul>
+
+        <h3>Data Processing</h3>
+        <p>
+            When you check "Use random values," we generate random preferences for fields that are left blank. 
+            This helps create a more diverse dataset and allows for better matching.
+        </p>
+
+        <h3>Result Generation</h3>
+        <p>
+            Once submitted, the system ranks and displays the top 10 bios that have the highest similarity score with your input.
+        </p>
+
+        <!-- Back to Home Button -->
+        <div class="text-center mt-4">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Home</a>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vibe Check</title>
+
+    <!-- Bootstrap CSS (CDN) -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+    />
+
+    <!-- (Optional) Font Awesome for Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+      integrity="sha512-Fo3rlrZj/k7ujTnHqT+Y0sWRr1A4d7aPN+IVZswK+7y8zmLwKxKdi2twdCKplZJovI49zLi3an7LkW9a7Ln7kg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!-- Your Custom CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+
+    <!-- Inline Custom Styling for a Quick Demo -->
+    <style>
+      /* 
+      Hero Section with a Halloween-ish Gradient 
+      - Using a bright orange (#F39C12) blending into a yellow (#FFC107).
+      - White text with a subtle text-shadow for better readability.
+    */
+      .hero {
+        background: linear-gradient(to right, #f39c12, #ffc107);
+        color: #fff;
+        padding: 60px 0;
+        text-align: center;
+        margin-bottom: 40px;
+        position: relative;
+      }
+      .hero .fa-ghost {
+        color: #fff;
+        font-size: 3rem;
+        margin-bottom: 20px;
+      }
+      .hero h1 {
+        font-weight: 700;
+        margin-bottom: 10px;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+      }
+      .hero p {
+        font-size: 1.1rem;
+        margin-bottom: 0;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Card for the Form */
+      .form-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        margin-bottom: 30px;
+      }
+      .form-card h2 {
+        color: #e67e22; /* A pumpkin-orange accent for headings */
+        font-weight: 700;
+      }
+
+      /* Card for the Example Bios */
+      .example-bios-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 30px;
+      }
+      .example-bios-card h3 {
+        color: #e67e22;
+        font-weight: 700;
+      }
+
+      /* Custom Button */
+      .btn-custom {
+        background: #e67e22;
+        color: #fff;
+        border: none;
+        transition: background 0.3s;
+      }
+      .btn-custom:hover {
+        background: #ca6f1e;
+      }
+
+      /* Footer (optional) */
+      .footer {
+        background: #f8f9fa;
+        padding: 20px 0;
+        text-align: center;
+        margin-top: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Hero Section -->
+    <div class="hero">
+      <!-- Spooky Icon (Font Awesome Ghost) -->
+      <i class="fas fa-ghost"></i>
+      <h1>Find People with Similar Vibes as You</h1>
+      <p>Join the spooky season and connect with like-minded souls!</p>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+      <!-- Row with Form (left) and Example Bios (right) -->
+      <div class="row">
+        <!-- Form Column -->
+        <div class="col-md-7">
+          <div class="form-card">
+            <h2 class="mb-4">Tell Us About Yourself</h2>
+            <form method="POST" action="{{ url_for('index') }}">
+              <!-- Bio Field -->
+              <div class="form-group">
+                <label for="bio"><strong>Bio</strong></label>
+                <textarea
+                  class="form-control"
+                  name="bio"
+                  id="bio"
+                  rows="3"
+                  placeholder="Write something about yourself..."
+                ></textarea>
+              </div>
+
+              <!-- Random Values Checkbox -->
+              <div class="form-group form-check">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  name="random_vals"
+                  id="random_vals"
+                />
+                <label class="form-check-label" for="random_vals">
+                  Use random values for other fields
+                </label>
+              </div>
+
+              <!-- Loop through additional fields -->
+              {% for key, options in combined.items() %} {% if key in
+              ['Religion', 'Politics'] %}
+              <div class="form-group">
+                <label for="{{ key }}"><strong>{{ key }}</strong></label>
+                <select class="form-control" name="{{ key }}" id="{{ key }}">
+                  {% for option in options %}
+                  <option value="{{ option }}">{{ option }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              {% elif key == 'Age' %}
+              <div class="form-group">
+                <label for="{{ key }}"><strong>{{ key }}</strong></label>
+                <input
+                  type="number"
+                  class="form-control"
+                  name="{{ key }}"
+                  id="{{ key }}"
+                  min="18"
+                  max="50"
+                  placeholder="Enter your age"
+                />
+              </div>
+              {% else %}
+              <div class="form-group">
+                <label for="{{ key }}">
+                  <strong>{{ key }}</strong>
+                  <small>(comma separated if multiple)</small>
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="{{ key }}"
+                  id="{{ key }}"
+                  placeholder="e.g., Action, Comedy"
+                />
+              </div>
+              {% endif %} {% endfor %}
+
+              <!-- Submit Button -->
+              <button type="submit" class="btn btn-custom btn-block mt-4">
+                Get Your Top 10!
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Example Bios Column -->
+        <div class="col-md-5">
+          <div class="example-bios-card">
+            <h3>Example Bios</h3>
+            <table class="table table-bordered table-striped mt-3">
+              <thead>
+                <tr>
+                  <th>Bio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for bio in example_bios %}
+                <tr>
+                  <td>{{ bio }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+            <!-- "How It Works" Link -->
+            <div class="mt-3 text-center">
+              <a
+                href="{{ url_for('how_it_works') }}"
+                class="btn btn-outline-dark"
+              >
+                How It Works
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- (Optional) Footer -->
+    <div class="footer mt-5">
+      <p class="mb-0">
+        <small>&copy; 2025 Vibe Check. All rights reserved.</small>
+      </p>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  </body>
+</html>
