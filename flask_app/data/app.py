@@ -24,13 +24,13 @@ db = client["mydatabase"]
     # for rec in records:
     #     rec.pop("_id", None)
     # return pd.DataFrame(records)
-with open(".\\data\\refined_profiles.pkl",'rb') as fp:
+with open("refined_profiles.pkl",'rb') as fp:
     df = pickle.load(fp)
 
-with open(".\\data\\refined_cluster.pkl", 'rb') as fp:
+with open("refined_cluster.pkl", 'rb') as fp:
     cluster_df = pickle.load(fp)
     
-with open(".\\data\\vectorized_refined.pkl", 'rb') as fp:
+with open("vectorized_refined.pkl", 'rb') as fp:
     vect_df = pickle.load(fp)
 
 # Load our preprocessed data from MongoDB:
@@ -66,7 +66,7 @@ def string_convert(x):
         return ' '.join(x)
     return x
 
-def vectorization(df, columns, input_df):
+def vectorize(df, columns, input_df):
     """
     Using recursion, iterate through the df until all the categories have been vectorized
     """
@@ -93,11 +93,11 @@ def vectorization(df, columns, input_df):
         input_df[column_name.lower()] = d[input_df[column_name].iloc[0]]
                 
         # Dropping the column names
-        input_df = input_df.drop(column_name, axis=1)
+        input_df = input_df.drop(column_name, 1)
         
-        df = df.drop(column_name, axis=1)
+        df = df.drop(column_name, 1)
         
-        return vectorization(df, df.columns, input_df)
+        return vectorize(df, df.columns, input_df)
     
     # Vectorizing the other columns
     else:
@@ -124,19 +124,14 @@ def vectorization(df, columns, input_df):
         
         y_df = y_df.drop(column_name, axis=1)
         
-        return vectorization(new_df, new_df.columns, y_df) 
+        return vectorize(new_df, new_df.columns, y_df) 
 
 
-def scaling(df, input_df):
+def scaling(input_df):
     """
-    Scales the new data with the scaler fitted from the previous data
+    Scales the features using MinMaxScaler.
     """
-    scaler = MinMaxScaler()
-    
-    scaler.fit(df)
-    
     input_vect = pd.DataFrame(scaler.transform(input_df), index=input_df.index, columns=input_df.columns)
-        
     return input_vect
 
 def top_ten(cluster, vect_df, input_vect):
@@ -144,11 +139,11 @@ def top_ten(cluster, vect_df, input_vect):
     Returns the DataFrame containing the top 10 similar profiles to the new data
     """
     # Filtering out the clustered DF
-    des_cluster = vect_df[vect_df['cluster']==cluster[0]].drop('cluster', axis=1)
+    des_cluster = vect_df[vect_df['Cluster #']==cluster[0]].drop('Cluster #', 1)
     
     # Appending the new profile data
-    des_cluster = pd.concat([des_cluster, input_vect], ignore_index=False)
-            
+    des_cluster = des_cluster.append(input_vect, sort=False)
+        
     # Finding the Top 10 similar or correlated users to the new user
     user_n = input_vect.index[0]
     
@@ -262,26 +257,25 @@ def get_profile():
 def index():
     if request.method == "POST":
          
-        new_profile = get_profile()
+        profile = get_profile()
+        # if profile is not None:
+        #     top10_html = df[:10].to_html(classes='table table-striped')
 
         for c in df.columns:
-            df[c] = df[c].apply(string_convert)
-            new_profile[c] = new_profile[c].apply(string_convert)
-        df_v, input_df = vectorization(df, df.columns, new_profile)
-                
-        # Scaling the New Data
-        new_df = scaling(df_v, input_df)
-                
-        # Predicting/Classifying the new data
-        cluster = model.predict(new_df)
+            profile[c] = profile[c].apply(string_convert)
+        df_v, vect_profile = vectorize(df, df.columns, profile)
+        vect_profile = scaling(vect_profile)
         
-        # Finding the top 10 related profiles
-        top_10_df = top_ten(cluster, vect_df, new_df)
+        # # --- Predict Cluster ---
+        cluster = model.predict(vect_profile)
         
-        # # # --- Add New Profile to MongoDB ---
-        # doc = profile.to_dict(orient='records')[0]
-        # doc["cluster"] = int(cluster[0])
-        # db.profiles.insert_one(doc)
+        # # --- Fetch same-cluster records & Compute Top 10 ---
+        top_10_df = top_ten(cluster, vect_df, vect_profile)
+        
+        # # --- Add New Profile to MongoDB ---
+        doc = profile.to_dict(orient='records')[0]
+        doc["cluster"] = int(cluster[0])
+        db.profiles.insert_one(doc)
         
         # --- Render Results ---
         top10_html = top_10_df.to_html(classes='table table-striped')
