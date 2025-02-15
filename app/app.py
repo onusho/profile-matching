@@ -1,40 +1,71 @@
-# Library Imports
+###############################
+# app.py
+###############################
+from flask import Flask, render_template, request, redirect, url_for, flash
+from pymongo import MongoClient
 from joblib import load
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import MinMaxScaler
-import streamlit as st
 import _pickle as pickle
 from random import sample
-from PIL import Image
-from scipy.stats import halfnorm
 
-# Loading the Profiles
-with open("refined_profiles.pkl",'rb') as fp:
+# -------------------------------
+# 1. MongoDB Connection
+# -------------------------------
+client = MongoClient("mongodb://localhost:27017/")
+db = client["mydatabase"]
+
+# def load_dataframe(collection_name):
+#     """Load a DataFrame from a MongoDB collection (removes _id)."""
+    # cursor = db[collection_name].find()
+    # records = list(cursor)
+    # for rec in records:
+    #     rec.pop("_id", None)
+    # return pd.DataFrame(records)
+with open(".\\data\\refined_profiles.pkl",'rb') as fp:
     df = pickle.load(fp)
-    
-with open("refined_cluster.pkl", 'rb') as fp:
+
+with open(".\\data\\refined_cluster.pkl", 'rb') as fp:
     cluster_df = pickle.load(fp)
     
-with open("vectorized_refined.pkl", 'rb') as fp:
+with open(".\\data\\vectorized_refined.pkl", 'rb') as fp:
     vect_df = pickle.load(fp)
-    
-# Loading the Classification Model
-model = load("refined_model.joblib")
 
-## Helper Functions
+# Load our preprocessed data from MongoDB:
+# df = load_dataframe("refined_profiles")            # Original profiles DataFrame
+# cluster_df = load_dataframe("refined_cluster")       # Cluster information
+# vect_df = load_dataframe("vectorized_refined")       # Vectorized features DataFrame
 
+with open('.\\data\\combined.pkl', 'rb') as f:
+    combined = pickle.load(f)
+
+with open('.\\data\\vectorizers.pkl', 'rb') as f:
+    vectorizers = pickle.load(f)
+
+model = load(".\\data\\refined_model.joblib")
+scaler = load(".\\data\\scaler.joblib")
+
+MIN_AGE = 18
+MAX_AGE = 100
+
+# -------------------------------
+# 2. Flask App Configuration
+# -------------------------------
+app = Flask(__name__)
+app.config["SECRET_KEY"] = "secret_key"  
+
+
+# -------------------------------
+# 4. Helper Functions
+# -------------------------------
 def string_convert(x):
-    """
-    First converts the lists in the DF into strings
-    """
+    """Converts lists to space‐separated strings."""
     if isinstance(x, list):
         return ' '.join(x)
-    else:
-        return x
- 
-    
+    return x
+
 def vectorization(df, columns, input_df):
     """
     Using recursion, iterate through the df until all the categories have been vectorized
@@ -62,9 +93,9 @@ def vectorization(df, columns, input_df):
         input_df[column_name.lower()] = d[input_df[column_name].iloc[0]]
                 
         # Dropping the column names
-        input_df = input_df.drop(column_name, 1)
+        input_df = input_df.drop(column_name, axis=1)
         
-        df = df.drop(column_name, 1)
+        df = df.drop(column_name, axis=1)
         
         return vectorization(df, df.columns, input_df)
     
@@ -79,23 +110,23 @@ def vectorization(df, columns, input_df):
         y = vectorizer.transform(input_df[column_name].values.astype('U'))
 
         # Creating a new DF that contains the vectorized words
-        df_wrds = pd.DataFrame(x.toarray(), columns=vectorizer.get_feature_names())
+        df_wrds = pd.DataFrame(x.toarray(), columns=vectorizer.get_feature_names_out())
         
-        y_wrds = pd.DataFrame(y.toarray(), columns=vectorizer.get_feature_names(), index=input_df.index)
+        y_wrds = pd.DataFrame(y.toarray(), columns=vectorizer.get_feature_names_out(), index=input_df.index)
 
         # Concating the words DF with the original DF
         new_df = pd.concat([df, df_wrds], axis=1)
         
-        y_df = pd.concat([input_df, y_wrds], 1)
+        y_df = pd.concat([input_df, y_wrds], axis=1)
 
         # Dropping the column because it is no longer needed in place of vectorization
         new_df = new_df.drop(column_name, axis=1)
         
-        y_df = y_df.drop(column_name, 1)
+        y_df = y_df.drop(column_name, axis=1)
         
         return vectorization(new_df, new_df.columns, y_df) 
 
-    
+
 def scaling(df, input_df):
     """
     Scales the new data with the scaler fitted from the previous data
@@ -107,19 +138,17 @@ def scaling(df, input_df):
     input_vect = pd.DataFrame(scaler.transform(input_df), index=input_df.index, columns=input_df.columns)
         
     return input_vect
-    
-
 
 def top_ten(cluster, vect_df, input_vect):
     """
     Returns the DataFrame containing the top 10 similar profiles to the new data
     """
     # Filtering out the clustered DF
-    des_cluster = vect_df[vect_df['Cluster #']==cluster[0]].drop('Cluster #', 1)
+    des_cluster = vect_df[vect_df['cluster']==cluster[0]].drop('cluster', axis=1)
     
     # Appending the new profile data
-    des_cluster = des_cluster.append(input_vect, sort=False)
-        
+    des_cluster = pd.concat([des_cluster, input_vect], ignore_index=False)
+            
     # Finding the Top 10 similar or correlated users to the new user
     user_n = input_vect.index[0]
     
@@ -138,242 +167,106 @@ def top_ten(cluster, vect_df, input_vect):
     return top_10.astype('object')
 
 
-def example_bios():
-    """
-    Creates a list of random example bios from the original dataset
-    """
-    # Example Bios for the user
-    st.write("-"*100)
-    st.text("Some example Bios:\n(Try to follow the same format)")
-    for i in sample(list(df.index), 3):
-        st.text(df['Bios'].loc[i])
-    st.write("-"*100)
+def get_example_bios():
+    """Return 3 random example bios from df."""
+    return sample(list(df['Bios']), 3)
 
-## Creating a List for each Category
+def get_data():
+        bio = request.form.get('bio')
+        religion = request.form.get('Religion')
+        politics = request.form.get('Politics')
+        age = int(request.form.get('Age'))
+        movies = request.form.get('Movies', '')
+        music = request.form.get('Music', '')
+        social_media = request.form.get('Social Media', '')
+        sports = request.form.get('Sports', '')
+        
+        if not bio or not religion or not politics or not age:
+            flash('Please fill in all required fields.', 'danger')
+            return redirect(url_for('index'))
+        try:
+            age = int(age)
+        except ValueError:
+            flash('Age must be a valid number.', 'danger')
+            return redirect(url_for('index'))
+        
+        if age < MIN_AGE or age > MAX_AGE:
+            flash(f'Age must be between {MIN_AGE} and {MAX_AGE}.', 'danger')
+            return redirect(url_for('index'))
+        
+        def validate_comma_separated(field_value, field_name):
+            if field_value:
+                # Split and strip whitespace
+                items = [item.strip() for item in field_value.split(',') if item.strip()]
+                if len(items) > 3:
+                    flash(f'Please select up to 3 {field_name}.', 'danger')
+                    return False, []
+                return True, items
+            return True, []
 
-# Probability dictionary
-p = {}
 
-# Movie Genres
-movies = ['Adventure',
-          'Action',
-          'Drama',
-          'Comedy',
-          'Thriller',
-          'Horror',
-          'RomCom',
-          'Musical',
-          'Documentary']
-
-p['Movies'] = [0.28,
-               0.21,
-               0.16,
-               0.14,
-               0.09,
-               0.06,
-               0.04,
-               0.01, 
-               0.01]
-
-# TV Genres
-tv = ['Comedy',
-      'Drama',
-      'Action/Adventure',
-      'Suspense/Thriller',
-      'Documentaries',
-      'Crime/Mystery',
-      'News',
-      'SciFi',
-      'History']
-
-p['TV'] = [0.30,
-           0.23,
-           0.12,
-           0.12,
-           0.09,
-           0.08,
-           0.03,
-           0.02,
-           0.01]
-
-# Religions (could potentially create a spectrum)
-religion = ['Catholic',
-            'Christian',
-            'Jewish',
-            'Muslim',
-            'Hindu',
-            'Buddhist',
-            'Spiritual',
-            'Other',
-            'Agnostic',
-            'Atheist']
-
-p['Religion'] = [0.16,
-                 0.16,
-                 0.01,
-                 0.19,
-                 0.11,
-                 0.05,
-                 0.10,
-                 0.09,
-                 0.07,
-                 0.06]
-
-# Music
-music = ['Rock',
-         'HipHop',
-         'Pop',
-         'Country',
-         'Latin',
-         'EDM',
-         'Gospel',
-         'Jazz',
-         'Classical']
-
-p['Music'] = [0.30,
-              0.23,
-              0.20,
-              0.10,
-              0.06,
-              0.04,
-              0.03,
-              0.02,
-              0.02]
-
-# Sports
-sports = ['Football',
-          'Baseball',
-          'Basketball',
-          'Hockey',
-          'Soccer',
-          'Other']
-
-p['Sports'] = [0.34,
-               0.30,
-               0.16, 
-               0.13,
-               0.04,
-               0.03]
-
-# Politics (could also put on a spectrum)
-politics = ['Liberal',
-            'Progressive',
-            'Centrist',
-            'Moderate',
-            'Conservative']
-
-p['Politics'] = [0.26,
-                 0.11,
-                 0.11,
-                 0.15,
-                 0.37]
-
-# Social Media
-social = ['Facebook',
-          'Youtube',
-          'Twitter',
-          'Reddit',
-          'Instagram',
-          'Pinterest',
-          'LinkedIn',
-          'SnapChat',
-          'TikTok']
-
-p['Social Media'] = [0.36,
-                     0.27,
-                     0.11,
-                     0.09,
-                     0.05,
-                     0.03,
-                     0.03,
-                     0.03,
-                     0.03]
-
-age = None
-
-# Lists of Names and the list of the lists
-categories = [movies, religion, music, politics, social, sports, age]
-
-names = ['Movies','Religion', 'Music', 'Politics', 'Social Media', 'Sports', 'Age']
-
-combined = dict(zip(names, categories))
+        valid, movies_list = validate_comma_separated(movies, 'movies')
+        if not valid:
+            return redirect(url_for('index'))
+        
+        valid, music_list = validate_comma_separated(music, 'music genres')
+        if not valid:
+            return redirect(url_for('index'))
+        
+        valid, social_media_list = validate_comma_separated(social_media, 'social media platforms')
+        if not valid:
+            return redirect(url_for('index'))
+        
+        valid, sports_list = validate_comma_separated(sports, 'sports')
+        if not valid:
+            return redirect(url_for('index'))
+        
+        flash('Form submitted successfully!', 'success')
+        return (bio, movies_list, religion, music_list, politics, social_media_list, sports_list, age)
     
+def get_profile():
+    categories = get_data()
+    profile_index = df.index[-1] + 1
+    profile = pd.DataFrame(columns=df.columns, index=[profile_index])
     
-## Interactive Section
+    for i, name in enumerate(list(df.columns)):
+        profile.at[profile_index, name] = categories[i]
 
-# Creating the Titles and Image
-st.title("AI-MatchMaker")
+    profile['Religion'] = pd.Categorical(profile.Religion, ordered=True,
+                                categories=['Catholic',
+                                            'Christian',
+                                            'Jewish',
+                                            'Muslim',
+                                            'Hindu',
+                                            'Buddhist',
+                                            'Spiritual',
+                                            'Other',
+                                            'Agnostic',
+                                            'Atheist'])
 
-st.header("Finding a Date with Artificial Intelligence")
-st.write("Using Machine Learning to Find the Top Dating Profiles for you")
+    profile['Politics'] = pd.Categorical(profile.Politics, ordered=True,
+                                    categories=['Liberal',
+                                                'Progressive',
+                                                'Centrist',
+                                                'Moderate',
+                                                'Conservative'])
+    return profile
 
-image = Image.open('robot_matchmaker.jpg')
+        
 
-st.image(image, use_column_width=True)
-
-# Instantiating a new DF row to classify later
-new_profile = pd.DataFrame(columns=df.columns, index=[df.index[-1]+1])
-
-# Asking for new profile data
-new_profile['Bios'] = st.text_input("Enter a Bio for yourself: ")
-
-# Printing out some example bios for the user        
-example_bios()
-
-# Checking if the user wants random bios instead
-random_vals = st.checkbox("Check here if you would like random values for yourself instead")
-
-# Entering values for the user
-if random_vals:
-    # Adding random values for new data
-    for i in new_profile.columns[1:]:
-        if i in ['Religion', 'Politics']:  
-            new_profile[i] = np.random.choice(combined[i], 1, p=p[i])
-            
-        elif i == 'Age':
-            new_profile[i] = halfnorm.rvs(loc=18,scale=8, size=1).astype(int)
-            
-        else:
-            new_profile[i] = list(np.random.choice(combined[i], size=(1,3), p=p[i]))
-            
-            new_profile[i] = new_profile[i].apply(lambda x: list(set(x.tolist())))
-
-else:
-    # Manually inputting the data
-    for i in new_profile.columns[1:]:
-        if i in ['Religion', 'Politics']:  
-            new_profile[i] = st.selectbox(f"Enter your choice for {i}:", combined[i])
-            
-        elif i == 'Age':
-            new_profile[i] = st.slider("What is your age?", 18, 50)
-            
-        else:
-            options = st.multiselect(f"What is your preferred choice for {i}? (Pick up to 3)", combined[i])
-            
-            # Assigning the list to a specific row
-            new_profile.at[new_profile.index[0], i] = options
-            
-            new_profile[i] = new_profile[i].apply(lambda x: list(set(x)))
-            
-            
-# Looping through the columns and applying the string_convert() function (for vectorization purposes)
-for col in df.columns:
-    df[col] = df[col].apply(string_convert)
     
-    new_profile[col] = new_profile[col].apply(string_convert)
-            
+# -------------------------------
+# 5. Routes
+# -------------------------------
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+         
+        new_profile = get_profile()
 
-# Displaying the User's Profile 
-st.write("-"*1000)
-st.write("Your profile:")
-st.table(new_profile)
-
-# Push to start the matchmaking process
-button = st.button("Click to find your Top 10!")
-
-if button:    
-    with st.spinner('Finding your Top 10 Matches...'):
-        # Vectorizing the New Data
+        for c in df.columns:
+            df[c] = df[c].apply(string_convert)
+            new_profile[c] = new_profile[c].apply(string_convert)
         df_v, input_df = vectorization(df, df.columns, new_profile)
                 
         # Scaling the New Data
@@ -385,14 +278,34 @@ if button:
         # Finding the top 10 related profiles
         top_10_df = top_ten(cluster, vect_df, new_df)
         
-        # Success message   
-        st.success("Found your Top 10 Most Similar Profiles!")    
-        st.balloons()
-
-        # Displaying the Top 10 similar profiles
-        st.table(top_10_df)
+        # # # --- Add New Profile to MongoDB ---
+        # doc = profile.to_dict(orient='records')[0]
+        # doc["cluster"] = int(cluster[0])
+        # db.profiles.insert_one(doc)
         
-
-        
-
+        # --- Render Results ---
+        top10_html = top_10_df.to_html(classes='table table-striped')
+        return render_template("results.html", top10=top10_html)
     
+    # GET request: Render the form, passing combined options and age range.
+    example_bios = get_example_bios()
+    return render_template("index.html", example_bios=example_bios, politics=combined['Politics'], religions=combined['Religion'], min_age=MIN_AGE,  max_age=MAX_AGE)
+
+@app.route("/how-it-works")
+def how_it_works():
+    """Display a page that explains how everything works."""
+    return render_template("how_it_works.html")
+
+@app.route("/profiles")
+def show_profiles():
+    """Display all stored profiles from MongoDB."""
+    all_profiles = list(db.refined_profiles.find())
+    for profile in all_profiles:
+        profile["_id"] = str(profile["_id"])
+    return render_template("profiles.html", profiles=all_profiles)
+
+###############################
+# 6. Main
+###############################
+if __name__ == "__main__":
+    app.run(debug=True)
