@@ -1,53 +1,121 @@
-/* Example custom CSS */
+/* Global Styles */
+body {
+  background: linear-gradient(135deg, #FAD7A0, #F5B7B1, #A7C7E7);
+  background-size: 400% 400%;
+  animation: gradientShift 12s ease infinite;
+  color: #6D6875;
+  font-family: 'Press Start 2P', cursive;
+  margin: 0;
+  padding: 0;
+}
+
+/* Background Animation */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Hero Section */
 .hero {
-    background: linear-gradient(to right, #F39C12, #FFC107);
-    color: #fff;
-    padding: 60px 0;
-    text-align: center;
-    margin-bottom: 40px;
-    position: relative;
-  }
-  
-  .hero .fa-ghost {
-    color: #fff;
-    font-size: 3rem;
-    margin-bottom: 20px;
-  }
-  
-  .hero h1 {
-    font-weight: 700;
-    margin-bottom: 10px;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
-  }
-  
-  .hero p {
-    font-size: 1.1rem;
-    margin-bottom: 0;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  }
-  
-  .form-card, .example-bios-card {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 30px;
-    margin-bottom: 30px;
-  }
-  
-  .btn-custom {
-    background: #E67E22;
-    color: #fff;
-    border: none;
-    transition: background 0.3s;
-  }
-  .btn-custom:hover {
-    background: #CA6F1E;
-  }
-  
-  .footer {
-    background: #f8f9fa;
-    padding: 20px 0;
-    text-align: center;
-    margin-top: 40px;
-  }
-  
+  background: linear-gradient(45deg, rgba(240, 187, 204, 0.8), rgba(167, 199, 231, 0.8));
+  color: #ffffff;
+  padding: 60px 20px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.hero i {
+  color: #FAD7A0;
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Subtle Floating Animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Form Card and Example Bios Card */
+.form-card, .example-bios-card {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(250, 200, 180, 0.2);
+  border: 2px solid #FAD7A0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin: 20px;
+  padding: 20px;
+}
+
+.form-card:hover, .example-bios-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 12px rgba(250, 200, 180, 0.3);
+}
+
+/* Form Inputs */
+.form-control {
+  background: rgba(255, 255, 255, 0.7);
+  color: #6D6875;
+  border: 2px solid #FAD7A0;
+  font-family: 'Press Start 2P', cursive;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.form-control::placeholder {
+  color: #A29B9B;
+}
+
+select.form-control {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;         /* or adjust as needed */
+  line-height: 1.4;        /* increased line-height */
+  padding: 10px 12px;      /* extra vertical padding */
+  height: auto;            /* let the browser size the height */
+  box-sizing: border-box;  /* ensure padding is included in total height */
+}
+
+/* Submit Button with Subtle Glassmorphism */
+.btn-custom {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(5px);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  color: #6D6875;
+  font-family: 'Press Start 2P', cursive;
+  padding: 10px 20px;
+  transition: background 0.3s, transform 0.2s;
+  cursor: pointer;
+}
+
+.btn-custom:hover {
+  background: linear-gradient(90deg, #FAD7A0, #F5B7B1);
+  transform: scale(1.05);
+}
+
+/* Example Bios Table */
+.table {
+  background: rgba(255, 255, 255, 0.85);
+  color: #6D6875;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.table-bordered th, .table-bordered td {
+  border: 1px solid #FAD7A0;
+  padding: 8px;
+}
+
+/* Footer */
+.footer {
+  padding: 20px 0;
+  background: rgba(240, 187, 204, 0.8);
+  color: #6D6875;
+  font-size: 14px;
+  font-family: 'Press Start 2P', cursive;
+  text-align: center;
+}
+

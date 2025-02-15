@@ -7,36 +7,43 @@
     rel="stylesheet"
     href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
   />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
-<body style="background: linear-gradient(to right, #F39C12, #FFC107); color: white;">
-  <div class="container mt-5 p-4" style="background: white; color: black; border-radius: 8px;">
+<body>
+  <div class="container mt-5 p-4">
     <h1 class="text-center">How It Works</h1>
-    <p>
-      Our system takes the bio you enter and matches you with similar individuals
-      using a combination of text similarity and preference-based filtering.
-    </p>
 
-    <h3>Matching Algorithm</h3>
     <ul>
-      <li>We analyze the entered bio using Natural Language Processing (NLP).</li>
-      <li>We compare it against our dataset of example bios.</li>
-      <li>We factor in your preferences (movies, music, politics, etc.) to refine the matching process.</li>
+      <li>
+        <strong>User Submits Form:</strong> 
+        The user’s bio and preferences go through <code>get_data()</code>, becoming a new profile in <code>get_profile()</code>.
+
+      </li>
+      <li>
+        <strong>Vectorization:</strong> 
+        The textual data is transformed into numeric vectors.
+      </li>
+      <li>
+        <strong>Classification:</strong> 
+        The model predicts which cluster this new profile belongs to.
+      </li>
+      <li>
+        <strong>Similarity Calculation:</strong> 
+        <code>top_ten()</code> identifies the closest matches (based on correlation) from that cluster.
+      </li>
+      <li>
+        <strong>Display:</strong> 
+        The top 10 results are rendered in <code>results.html</code>.
+      </li>
     </ul>
-
-    <h3>Data Processing</h3>
-    <p>
-      When you check "Use random values," we generate random preferences for fields that are left blank. 
-      This helps create a more diverse dataset and allows for better matching.
-    </p>
-
-    <h3>Result Generation</h3>
-    <p>
-      Once submitted, the system ranks and displays the top 10 bios that have the highest similarity score with your input.
-    </p>
 
     <div class="text-center mt-4">
       <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Home</a>
     </div>
+  </div>
+  <div class="footer mt-5 text-center">
+    <small>&copy; No rights deserved.</small>
   </div>
 </body>
 </html>
