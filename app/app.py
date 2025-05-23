@@ -11,13 +11,6 @@ from random import sample
 client = MongoClient("mongodb://localhost:27017/")
 db = client["mydatabase"]
 
-# def load_dataframe(collection_name):
-#     """Load a DataFrame from a MongoDB collection (removes _id)."""
-    # cursor = db[collection_name].find()
-    # records = list(cursor)
-    # for rec in records:
-    #     rec.pop("_id", None)
-    # return pd.DataFrame(records)
 with open(".\\data\\refined_profiles.pkl",'rb') as fp:
     df = pickle.load(fp)
 
@@ -86,15 +79,9 @@ def vectorization(df, columns, input_df):
 
 
 def scaling(df, input_df):
-    """
-    Scales the new data with the scaler fitted from the previous data
-    """
     scaler = MinMaxScaler()
-    
     scaler.fit(df)
-    
     input_vect = pd.DataFrame(scaler.transform(input_df), index=input_df.index, columns=input_df.columns)
-        
     return input_vect
 
 def top_ten(cluster, vect_df, input_vect):
@@ -196,44 +183,25 @@ def get_profile():
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-         
         new_profile = get_profile()
-
         for c in df.columns:
             df[c] = df[c].apply(string_convert)
             new_profile[c] = new_profile[c].apply(string_convert)
         df_v, input_df = vectorization(df, df.columns, new_profile)
-                
-        # Scaling the New Data
         new_df = scaling(df_v, input_df)
-                
-        # Predicting/Classifying the new data
         cluster = model.predict(new_df)
-        
-        # Finding the top 10 related profiles
         top_10_df = top_ten(cluster, vect_df, new_df)
-        
-        # # # --- Add New Profile to MongoDB ---
-        # doc = profile.to_dict(orient='records')[0]
-        # doc["cluster"] = int(cluster[0])
-        # db.profiles.insert_one(doc)
-        
-        # --- Render Results ---
         top10_html = top_10_df.to_html(classes='table table-striped')
         return render_template("results.html", top10=top10_html)
-    
-    # GET request: Render the form, passing combined options and age range.
     example_bios = get_example_bios()
     return render_template("index.html", example_bios=example_bios, politics=combined['Politics'], religions=combined['Religion'], min_age=MIN_AGE,  max_age=MAX_AGE)
 
 @app.route("/how-it-works")
 def how_it_works():
-    """Display a page that explains how everything works."""
     return render_template("how_it_works.html")
 
 @app.route("/profiles")
 def show_profiles():
-    """Display all stored profiles from MongoDB."""
     all_profiles = list(db.refined_profiles.find())
     for profile in all_profiles:
         profile["_id"] = str(profile["_id"])
